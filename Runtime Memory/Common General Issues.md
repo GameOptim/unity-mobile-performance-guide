@@ -1,0 +1,94 @@
+# 2.2 Common General Issues
+
+The issues mentioned in this section are not specific to a single type of resource memory. Therefore, to avoid repetition, they are discussed uniformly here.
+
+
+
+## 2.2.1 Suspected Redundancy
+
+
+
+In the detailed resource list reported by GOT Online Resource Mode (hereinafter referred to as the Resource List), we often see that the peak count of a certain resource is greater than 1 and marked in red. Peak count is also a very important indicator in resource usage. The so-called **peak count** refers to the maximum number of instances of the same resource appearing in the same frame. Theoretically, peak count should not be greater than 1. When it is greater than 1, the entry is marked red in the list, and we call it **suspected redundant resource**.
+
+![10](https://uwa-ducument-img.oss-cn-beijing.aliyuncs.com/GameOptim/2.2CommonIssues/10.png)
+
+Generally, there are several possible causes for this problem.
+
+The most common redundancy is caused by AssetBundle resource loading: when building AssetBundle files, some shared resources (such as Texture, Mesh, etc.) are included in multiple different AssetBundles without dependent packaging. As a result, when these AssetBundles are loaded, multiple copies of the same resource exist in memory, which is **resource redundancy**. Strict detection and improvement are recommended.
+
+For detected suspected redundancy, an online AssetBundle detection tool can be used to check whether actual AssetBundle redundancy exists, and redundancy should be minimized. It is recommended to determine the optimization priority based on the memory size of redundant resources.
+
+![11](https://uwa-ducument-img.oss-cn-beijing.aliyuncs.com/GameOptim/2.2CommonIssues/11.png)
+
+It is worth noting that **suspected redundant resources** mean that we attempt to search for runtime redundant resources during detection and feed them back to users. However, we cannot guarantee 100% accuracy of this detection. This is because our judgment standard is: when two resources have the same name and memory attributes, we consider them as the same resource, and one of them is redundant. However, there do exist cases where different resources have identical attributes in a project. Therefore, resources extracted by the above rules are classified as **suspected redundant resources**. Whether they are truly redundant must be determined based on actual project conditions and online AssetBundle detection reports.
+
+GOT Online has been further updated for this issue. Currently, both Resource Report and Overview Report support linking with AssetBundle (hereinafter referred to as AB) reports, so that when developers find resource redundancy in Resource data, they can more conveniently check whether the redundancy is related to AB packaging.
+
+After successful association using the build version number, resources in the detailed resource usage table will be matched with resources in the AB report. Successfully matched items are marked with prominent blue links, allowing developers to quickly view and track detailed information of related resources.
+
+Through the **AB Packaging Redundancy Tag** next to the resource name, developers can quickly judge the relationship between Resource redundancy and AB packaging redundancy. If an anomaly is found, they can click the link on the resource name to view details, including name, number of involved AB files, corresponding AB file names, etc., so as to fully understand the resource status and usage.
+
+![12](https://uwa-ducument-img.oss-cn-beijing.aliyuncs.com/GameOptim/2.2CommonIssues/12.png)
+
+Another common redundancy is caused by loading and caching strategies. For example, after a resource is loaded and referenced by a container, its corresponding AssetBundle is unloaded using Unload(False), but the resource itself is not released. When the AB is reloaded, multiple copies of the resource will obviously exist.
+
+There are also other redundancy issues, such as a resource referenced in the first scene being loaded again via AB; shaders included by Always Include Shaders being loaded again via AB, etc. These require **case-by-case analysis**.
+
+
+
+## 2.2.2 Unnamed Resources
+
+
+
+In the resource list, some resources with the name **N/A** may appear. Generally, N/A resources are those instantiated via the `new` keyword in code but not given a name. It is recommended to name these resources using the **.name** method for easier resource statistics and management. Particular attention and strict inspection should be paid to N/A resources with serious redundancy or extremely large memory usage.
+
+![13](https://uwa-ducument-img.oss-cn-beijing.aliyuncs.com/GameOptim/2.2CommonIssues/13.png)
+
+
+
+## 2.2.3 Excessive Quantity or Large Memory Footprint of Persistent Resources
+
+
+
+In the resource list, combined with the resource lifetime curve, it is sometimes found that a batch of resources with considerable quantity and large individual memory footprint are loaded into memory at a certain moment, remain resident until the end of the test process, and are never unloaded. This may lead to increasingly higher resource memory usage and higher peaks in later game stages.
+
+It is recommended to check whether these resources need to be resident in memory. If they are no longer needed, investigate why they are not unloaded during scene switching. For resources that remain resident for a long time in a single scene, manual unloading can be considered.
+
+![14](https://uwa-ducument-img.oss-cn-beijing.aliyuncs.com/GameOptim/2.2CommonIssues/14.png)
+
+The decision whether to keep resources resident involves a trade-off between memory pressure and CPU time overhead. Simply put, if the current project faces high memory pressure but low CPU overhead during scene switching, the caching strategy can be adjusted to unload resources unused in the next scene during switching and reload them when needed.
+
+In particular, for textures and meshes — which are critical rendering resources with high memory proportion in most projects — GameOptim provides a more scientific method to identify such memory waste.
+
+In **GOT Online GPU Mode**, the **Rendering Resource Analysis** module uses low-level GPU interfaces to sample and record whether textures and meshes participate in actual rendering during the test.
+
+![15](https://uwa-ducument-img.oss-cn-beijing.aliyuncs.com/GameOptim/2.2CommonIssues/15.png)
+
+First, GameOptim introduces the concept of **Rendering Utilization**:
+
+the ratio of the number of sampling points where a texture or mesh participates in rendering to the number of sampling points where it exists in memory.
+
+For example:
+
+During a test with 10,000 regular sampling points, Texture A exists in memory in 6,000 samples but participates in GPU rendering in only 3,000 samples. The rendering utilization of Texture A is **50%**.
+
+In practice, especially for mobile games with large 3D maps, many rendered objects are placed in remote corners and are not always visible to players, so they rarely participate in rendering. Therefore, it is normal for rendering utilization to be only a few percent or even a few tenths of a percent.
+
+However, if a large number of resources have **0% rendering utilization** throughout the test or in a single scene, the possibility of memory waste is very high.
+
+Possible causes include:
+
+- Cross-scene resources are cached but not unloaded in subsequent scenes where they are no longer used;
+- Obsolete resources from development are still packaged and loaded;
+- Packing and loading mechanisms are too aggressive with coarse granularity, without proper per-scene or per-type packaging;
+- Scene design contains invisible or extremely low-visibility rendering objects.
+
+In short, there are various causes of waste. For example, GameOptim has found that many projects keep high-resolution login/Loading UI textures cached all the way into battle scenes. This shows that even seemingly simple errors can only be eliminated with proper tools and inspection workflows.
+
+![16](https://uwa-ducument-img.oss-cn-beijing.aliyuncs.com/GameOptim/2.2CommonIssues/16.png)
+
+By checking **Resources with 0 render utilization** in the Rendering Resource Analysis panel, resources with suspected waste can be filtered in the resource list. Developers can then verify and fix them in the project.
+
+(The definition and detection logic are essentially the same for textures and meshes.)
+
+![17](https://uwa-ducument-img.oss-cn-beijing.aliyuncs.com/GameOptim/2.2CommonIssues/17.png)
