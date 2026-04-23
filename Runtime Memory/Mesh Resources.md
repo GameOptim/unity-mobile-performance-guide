@@ -1,0 +1,87 @@
+# 2.4 Mesh Resources
+
+## 2.4.1 Vertex and Face Count
+
+Meshes with excessive vertices and triangles not only occupy large memory but also harm culling efficiency, easily increasing the number of rendered primitives and placing extra pressure on both GPU and CPU during rendering.
+
+For such meshes:
+
+- Simplify meshes, reduce vertex and face count, and create low-poly versions for mid-to-low-end devices.
+- Design a proper **Level of Distance (LOD)** system.
+- For static meshes with extremely high vertex count (e.g., complex terrain and buildings), consider splitting them into multiple repeated small meshes and reconstructing them, which can save memory.
+- If batching can be achieved via **SRP Batcher**, runtime static batching, or **GPU Instancing** for large numbers of repeated objects, rendering time can be well controlled.
+
+![28](https://uwa-ducument-img.oss-cn-beijing.aliyuncs.com/GameOptim/2.4Mesh/28.png)
+
+However, how to judge whether reducing polygon count reduces waste or sacrifices visual quality?
+
+How can programmers persuade artists to adjust model complexity?
+
+What LOD design is reasonable?
+
+To answer this familiar question, we introduce the third concept in **GOT Online GPU Mode – Rendering Resource Analysis**:
+
+**Meshes with excessively high rendering vertex density**.
+
+Similarly, the tool samples frequently during testing. For each sampling point where the mesh is rendered, it calculates the ratio between the number of vertices drawn and the number of on‑screen pixels.
+
+If the **minimum ratio** exceeds **1000 vertices per 10000 pixels**, the mesh is regarded as having excessively high density.
+
+Visually, 10000 pixels is roughly a 100×100 area (about the size of a thumbnail). Drawing more than 1000 vertices in such a small area far exceeds the detail distinguishable by the human eye.
+
+During actual GPU rendering, many tiny triangles are likely culled automatically and contribute nothing to visuals.
+
+This specification comes from best practices provided by mobile GPU manufacturers:
+
+- A well‑balanced mesh should have a **vertex‑to‑triangle ratio close to 1.5:1**.
+- Each triangle should cover at least **10–20 pixels**.
+
+GameOptim combines these two factors into a practical, realistic standard.
+
+![29](https://uwa-ducument-img.oss-cn-beijing.aliyuncs.com/GameOptim/2.4Mesh/29.png)
+
+By checking **Number of resources with excessive rendered vertex density** in the Rendering Resource Analysis panel, resources with suspected waste can be filtered in the list.
+
+Developers can then check and optimize them in the project.
+
+This method is also suitable for verifying whether LOD models still have unnecessarily high precision.
+
+![30](https://uwa-ducument-img.oss-cn-beijing.aliyuncs.com/GameOptim/2.4Mesh/30.png)
+
+## 2.4.2 Vertex Attributes
+
+Without unified art standards and import processing, meshes in a project often contain large amounts of **redundant vertex data**.
+
+“Redundant” here means vertex data not required by the Shader during rendering.
+
+For example:
+
+If a mesh contains position, uv, normal, color, and tangent, but the Shader only uses position, uv, and normal, then **color and tangent are redundant** and cause unnecessary memory waste.
+
+Note that if a small mesh carries extra vertex attributes, the **Combined Mesh** that contains it will also inherit those attributes.
+
+![31](https://uwa-ducument-img.oss-cn-beijing.aliyuncs.com/GameOptim/2.4Mesh/31.png)
+
+A simple solution is to enable the **Optimize Mesh Data** option in **Player Settings → Other Settings**.
+
+When enabled, the engine strips redundant vertex data from all meshes during build, reducing memory footprint.
+
+However, **special attention** is required for meshes whose materials are modified at runtime:
+
+If a GameObject will be assigned a more complex material requiring additional vertex attributes at runtime, attach these materials to the Prefab before building.
+
+This prevents the engine from stripping vertex data that will be used later.
+
+## 2.4.3 Read/Write Enabled
+
+In the resource list, many meshes show vertex attributes **not as -1 (or “-”)**.
+
+GameOptim can only collect vertex attributes for meshes with **Read/Write Enabled**.
+
+Enabling this option increases mesh memory usage.
+
+Generally, meshes that do not require CPU modification **do not need Read/Write Enabled**.
+
+You can batch‑modify the RW flag via Editor API, or directly disable it in the Inspector window for FBX meshes.
+
+![32](https://uwa-ducument-img.oss-cn-beijing.aliyuncs.com/GameOptim/2.4Mesh/32.png)
