@@ -1,23 +1,34 @@
-# unity-mobile-performance-guide
-Real-world Unity mobile performance optimization guide based on profiling, power consumption, and runtime analysis.
+# Unity Mobile Performance Optimization Guide (CPU, GPU, Memory & Power)
 
-This repository provides practical insights into real-world performance issues on mobile devices, including:
+A practical Unity mobile performance optimization guide based on real device profiling and production debugging data.
 
-- Runtime memory
+This repository focuses on identifying and resolving performance bottlenecks in real mobile game scenarios, including frame drops, memory spikes, GPU overload, and thermal throttling.
 
-- CPU time optimization using a modular approach
+## What you will learn
 
-- Balancing GPU load and visual performance
+This guide covers real-world optimization practices across four core areas:
 
-- Software-level optimization of power consumption, heat generation, and throttling
+- Memory management: reducing runtime allocations, GC pressure, and memory spikes
+- CPU optimization: improving frame time stability through modular system design
+- GPU performance: balancing rendering cost and visual quality under device constraints
+- Power & thermal control: analyzing performance degradation caused by throttling
 
-Based on performance analysis data and production experience.
+## Why this matters
 
-# About Us
+Mobile game performance is not only a rendering problem—it is a system-level constraint involving CPU scheduling, GPU workload, memory pressure, and device thermal behavior.
 
-GameOptim is a professional platform focused on mobile game performance optimization. With over 10 years of industry experience and insights from more than 10,000 game titles, it helps development teams deliver smoother gameplay with more predictable performance quality.
+Without profiling-based optimization, issues such as frame pacing instability, sudden FPS drops, and overheating are difficult to reproduce and fix consistently.
 
-Its core products, **Gears** and **GOT Online**, support different stages of the optimization workflow. **Gears** is a lightweight, free tool that requires no SDK integration, enabling fast performance diagnostics. **GOT Online** is designed for development and testing phases, providing deeper analysis and optimization capabilities.
+# About GameOptim
 
-Together, they form a complete workflow—from rapid issue detection to in-depth validation—enabling teams to shift from reactive performance fixes toward systematic performance engineering.
+GameOptim is a performance optimization platform focused on mobile games.
+
+With over 10 years of industry experience and analysis of 10,000+ game projects, GameOptim helps development teams identify, analyze, and resolve performance bottlenecks across development and production stages.
+
+Our tools support different phases of the optimization workflow:
+
+- Gears: a lightweight, SDK-free profiling tool for rapid performance diagnostics
+- GOT Online: an advanced analysis platform for deep profiling and validation during development and testing
+
+Together, they enable a full-cycle optimization workflow—from issue detection to systematic performance engineering.
 
